@@ -66,6 +66,9 @@ public abstract class MessageSender {
      * @return `true` if the Message was queued for sending, or `false` if aborted.
      */
     protected boolean send(Message message) {
+        if (Log.isPerfLoggable()) {
+            Log.perf("MessageSender.send");
+        }
         if ((mCallback == null) || mCallback.beforeSend(this, mLayerClient, mParticipantProvider, mConversation, message)) {
             mConversation.send(message);
             if (Log.isLoggable(Log.VERBOSE)) Log.v("Message sent by " + getClass().getSimpleName());

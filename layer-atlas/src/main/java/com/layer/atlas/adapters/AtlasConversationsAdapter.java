@@ -11,6 +11,7 @@ import com.layer.atlas.AtlasAvatar;
 import com.layer.atlas.R;
 import com.layer.atlas.provider.ParticipantProvider;
 import com.layer.atlas.util.ConversationStyle;
+import com.layer.atlas.util.Log;
 import com.layer.atlas.util.Util;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.messaging.Conversation;
@@ -39,6 +40,8 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
     private final DateFormat mDateFormat;
     private final DateFormat mTimeFormat;
     private ConversationStyle conversationStyle;
+
+    private boolean mFirstConversationInserted = false;
 
     public AtlasConversationsAdapter(Context context, LayerClient client, ParticipantProvider participantProvider, Picasso picasso) {
         this(context, client, participantProvider, picasso, null);
@@ -205,28 +208,58 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
 
     @Override
     public void onQueryDataSetChanged(RecyclerViewController controller) {
+        if (!mFirstConversationInserted) {
+            if (Log.isPerfLoggable()) {
+                Log.perf("AtlasConversationsAdapter.onQueryItemInserted: First Conversation inserted");
+            }
+            mFirstConversationInserted = true;
+        }
         syncInitialMessages(0, getItemCount());
         notifyDataSetChanged();
     }
 
     @Override
     public void onQueryItemChanged(RecyclerViewController controller, int position) {
+        if (mFirstConversationInserted) {
+            if (Log.isPerfLoggable()) {
+                Log.perf("AtlasConversationsAdapter.onQueryItemInserted: First Conversation inserted");
+            }
+            mFirstConversationInserted = true;
+        }
         notifyItemChanged(position);
     }
 
     @Override
     public void onQueryItemRangeChanged(RecyclerViewController controller, int positionStart, int itemCount) {
+        if (mFirstConversationInserted) {
+            if (Log.isPerfLoggable()) {
+                Log.perf("AtlasConversationsAdapter.onQueryItemInserted: First Conversation inserted");
+            }
+            mFirstConversationInserted = true;
+        }
         notifyItemRangeChanged(positionStart, itemCount);
     }
 
     @Override
     public void onQueryItemInserted(RecyclerViewController controller, int position) {
+        if (mFirstConversationInserted) {
+            if (Log.isPerfLoggable()) {
+                Log.perf("AtlasConversationsAdapter.onQueryItemInserted: First Conversation inserted");
+            }
+            mFirstConversationInserted = true;
+        }
         syncInitialMessages(position, 1);
         notifyItemInserted(position);
     }
 
     @Override
     public void onQueryItemRangeInserted(RecyclerViewController controller, int positionStart, int itemCount) {
+        if (mFirstConversationInserted) {
+            if (Log.isPerfLoggable()) {
+                Log.perf("AtlasConversationsAdapter.onQueryItemRangeInserted: First Conversation inserted");
+            }
+            mFirstConversationInserted = true;
+        }
         syncInitialMessages(positionStart, itemCount);
         notifyItemRangeInserted(positionStart, itemCount);
     }
@@ -303,6 +336,9 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
         @Override
         public void onClick(View v) {
             if (mClickListener == null) return;
+            if (Log.isPerfLoggable()) {
+                Log.perf("AtlasConversationsAdapter.onClick-Clicked on conversation item");
+            }
             mClickListener.onClick(this);
         }
 

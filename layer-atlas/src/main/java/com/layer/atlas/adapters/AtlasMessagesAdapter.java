@@ -19,6 +19,7 @@ import com.layer.atlas.messagetypes.AtlasCellFactory;
 import com.layer.atlas.messagetypes.MessageStyle;
 import com.layer.atlas.provider.Participant;
 import com.layer.atlas.provider.ParticipantProvider;
+import com.layer.atlas.util.Log;
 import com.layer.atlas.util.Util;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.messaging.Actor;
@@ -71,6 +72,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
     protected final Handler mUiThreadHandler;
     protected OnMessageAppendListener mAppendListener;
     protected final DisplayMetrics mDisplayMetrics;
+    private boolean mFirstMessageInserted = false;
 
     // Cells
     protected int mViewTypeCount = VIEW_TYPE_FOOTER;
@@ -81,7 +83,6 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
 
     // Dates and Clustering
     private final Map<Uri, Cluster> mClusterCache = new HashMap<Uri, Cluster>();
-    private final DateFormat mDateFormat;
     private final DateFormat mTimeFormat;
 
     // Read and delivery receipts
@@ -90,7 +91,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
     private View mFooterView;
     private int mFooterPosition = 0;
 
-    //Stye
+    //Style
     private MessageStyle mMessageStyle;
 
     private RecyclerView mRecyclerView;
@@ -101,7 +102,6 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
         mPicasso = picasso;
         mLayoutInflater = LayoutInflater.from(context);
         mUiThreadHandler = new Handler(Looper.getMainLooper());
-        mDateFormat = android.text.format.DateFormat.getDateFormat(context);
         mTimeFormat = android.text.format.DateFormat.getTimeFormat(context);
         mDisplayMetrics = context.getResources().getDisplayMetrics();
 
@@ -533,6 +533,12 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
 
     @Override
     public void onQueryDataSetChanged(RecyclerViewController controller) {
+        if (!mFirstMessageInserted) {
+            if (Log.isPerfLoggable()) {
+                Log.perf("AtlasMessagesAdapter.onQueryDataSetChanged: First Message inserted");
+            }
+            mFirstMessageInserted = true;
+        }
         mFooterPosition = mQueryController.getItemCount();
         updateReceipts();
         notifyDataSetChanged();
@@ -540,18 +546,36 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
 
     @Override
     public void onQueryItemChanged(RecyclerViewController controller, int position) {
+        if (!mFirstMessageInserted) {
+            if (Log.isPerfLoggable()) {
+                Log.perf("AtlasMessagesAdapter.onQueryItemChanged: First Message inserted");
+            }
+            mFirstMessageInserted = true;
+        }
         updateReceipts();
         notifyItemChanged(position);
     }
 
     @Override
     public void onQueryItemRangeChanged(RecyclerViewController controller, int positionStart, int itemCount) {
+        if (!mFirstMessageInserted) {
+            if (Log.isPerfLoggable()) {
+                Log.perf("AtlasMessagesAdapter.onQueryItemRangeChanged: First Message inserted");
+            }
+            mFirstMessageInserted = true;
+        }
         updateReceipts();
         notifyItemRangeChanged(positionStart, itemCount);
     }
 
     @Override
     public void onQueryItemInserted(RecyclerViewController controller, int position) {
+        if (!mFirstMessageInserted) {
+            if (Log.isPerfLoggable()) {
+                Log.perf("AtlasMessagesAdapter.onQueryItemInserted: First Message inserted");
+            }
+            mFirstMessageInserted = true;
+        }
         mFooterPosition++;
         updateReceipts();
         notifyItemInserted(position);
@@ -562,6 +586,12 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
 
     @Override
     public void onQueryItemRangeInserted(RecyclerViewController controller, int positionStart, int itemCount) {
+        if (!mFirstMessageInserted) {
+            if (Log.isPerfLoggable()) {
+                Log.perf("AtlasMessagesAdapter.onQueryItemInserted: First Message inserted");
+            }
+            mFirstMessageInserted = true;
+        }
         mFooterPosition += itemCount;
         updateReceipts();
         notifyItemRangeInserted(positionStart, itemCount);
