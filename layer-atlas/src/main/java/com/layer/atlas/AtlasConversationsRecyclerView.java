@@ -35,26 +35,30 @@ import com.layer.sdk.LayerClient;
 import com.layer.sdk.messaging.Conversation;
 import com.squareup.picasso.Picasso;
 
-public class AtlasConversationsRecyclerView extends RecyclerView {
-    AtlasConversationsAdapter mAdapter;
+public class AtlasConversationsRecyclerView extends RecyclerView 
+{
+    private KTAtlasConversationsAdapter mAdapter;
     private ItemTouchHelper mSwipeItemTouchHelper;
-
     private ConversationStyle conversationStyle;
 
-    public AtlasConversationsRecyclerView(Context context, AttributeSet attrs, int defStyle) {
+    public KTAtlasConversationsRecyclerView(Context context, AttributeSet attrs, int defStyle)
+    {
         super(context, attrs, defStyle);
         parseStyle(context, attrs, defStyle);
     }
 
-    public AtlasConversationsRecyclerView(Context context, AttributeSet attrs) {
+    public KTAtlasConversationsRecyclerView(Context context, AttributeSet attrs)
+    {
         this(context, attrs, 0);
     }
 
-    public AtlasConversationsRecyclerView(Context context) {
+    public KTAtlasConversationsRecyclerView(Context context)
+    {
         super(context);
     }
 
-    public AtlasConversationsRecyclerView init(LayerClient layerClient, ParticipantProvider participantProvider, Picasso picasso) {
+    public KTAtlasConversationsRecyclerView init(LayerClient layerClient, ParticipantProvider participantProvider, Picasso picasso)
+    {
         // Linear layout manager
         LinearLayoutManager manager = new LinearLayoutManager(getContext(), LinearLayoutManager.VERTICAL, false);
         manager.setStackFromEnd(false);
@@ -63,7 +67,7 @@ public class AtlasConversationsRecyclerView extends RecyclerView {
         // Don't flash items when changing content
         setItemAnimator(new NoChangeAnimator());
 
-        mAdapter = new AtlasConversationsAdapter(getContext(), layerClient, participantProvider, picasso);
+        mAdapter = new KTAtlasConversationsAdapter(getContext(), layerClient, participantProvider, picasso);
         mAdapter.setStyle(conversationStyle);
         super.setAdapter(mAdapter);
 
@@ -71,7 +75,8 @@ public class AtlasConversationsRecyclerView extends RecyclerView {
     }
 
     @Override
-    public void setAdapter(Adapter adapter) {
+    public void setAdapter(Adapter adapter)
+    {
         throw new RuntimeException("AtlasConversationsRecyclerView sets its own Adapter");
     }
 
@@ -85,7 +90,8 @@ public class AtlasConversationsRecyclerView extends RecyclerView {
         refresh();
     }
 
-    public AtlasConversationsRecyclerView refresh() {
+    public KTAtlasConversationsRecyclerView refresh()
+    {
         if (mAdapter != null) mAdapter.refresh();
         return this;
     }
@@ -93,21 +99,27 @@ public class AtlasConversationsRecyclerView extends RecyclerView {
     /**
      * Convenience pass-through to this list's AtlasConversationsAdapter.
      *
-     * @see AtlasConversationsAdapter#setOnConversationClickListener(AtlasConversationsAdapter.OnConversationClickListener)
+     * @see KTAtlasConversationsAdapter#setOnConversationClickListener(KTAtlasConversationsAdapter.OnConversationClickListener)
      */
-    public AtlasConversationsRecyclerView setOnConversationClickListener(AtlasConversationsAdapter.OnConversationClickListener listener) {
+    public KTAtlasConversationsRecyclerView setOnConversationClickListener(KTAtlasConversationsAdapter.OnConversationClickListener listener)
+    {
         mAdapter.setOnConversationClickListener(listener);
         return this;
     }
 
-    public AtlasConversationsRecyclerView setOnConversationSwipeListener(SwipeableItem.OnSwipeListener<Conversation> listener) {
-        if (mSwipeItemTouchHelper != null) {
+    public KTAtlasConversationsRecyclerView setOnConversationSwipeListener(SwipeableItem.OnSwipeListener<Conversation> listener)
+    {
+        if (mSwipeItemTouchHelper != null)
+        {
             mSwipeItemTouchHelper.attachToRecyclerView(null);
         }
-        if (listener == null) {
+        if (listener == null)
+        {
             mSwipeItemTouchHelper = null;
-        } else {
-            listener.setBaseAdapter((AtlasConversationsAdapter) getAdapter());
+        }
+        else
+        {
+            listener.setBaseAdapter((KTAtlasConversationsAdapter) getAdapter());
             mSwipeItemTouchHelper = new ItemTouchHelper(listener);
             mSwipeItemTouchHelper.attachToRecyclerView(this);
         }
@@ -117,14 +129,16 @@ public class AtlasConversationsRecyclerView extends RecyclerView {
     /**
      * Convenience pass-through to this list's AtlasConversationsAdapter.
      *
-     * @see AtlasConversationsAdapter#setInitialHistoricMessagesToFetch(long)
+     * @see KTAtlasConversationsAdapter#setInitialHistoricMessagesToFetch(long)
      */
-    public AtlasConversationsRecyclerView setInitialHistoricMessagesToFetch(long count) {
+    public KTAtlasConversationsRecyclerView setInitialHistoricMessagesToFetch(long count)
+    {
         mAdapter.setInitialHistoricMessagesToFetch(count);
         return this;
     }
 
-    public AtlasConversationsRecyclerView setTypeface(Typeface titleTypeface, Typeface titleUnreadTypeface, Typeface subtitleTypeface, Typeface subtitleUnreadTypeface, Typeface dateTypeface) {
+    public KTAtlasConversationsRecyclerView setTypeface(Typeface titleTypeface, Typeface titleUnreadTypeface, Typeface subtitleTypeface, Typeface subtitleUnreadTypeface, Typeface dateTypeface)
+    {
         conversationStyle.setTitleTextTypeface(titleTypeface);
         conversationStyle.setTitleUnreadTextTypeface(titleUnreadTypeface);
         conversationStyle.setSubtitleTextTypeface(subtitleTypeface);
@@ -133,7 +147,8 @@ public class AtlasConversationsRecyclerView extends RecyclerView {
         return this;
     }
 
-    private void parseStyle(Context context, AttributeSet attrs, int defStyle) {
+    private void parseStyle(Context context, AttributeSet attrs, int defStyle)
+    {
         ConversationStyle.Builder styleBuilder = new ConversationStyle.Builder();
         TypedArray ta = context.getTheme().obtainStyledAttributes(attrs, R.styleable.AtlasConversationsRecyclerView, R.attr.AtlasConversationsRecyclerView, defStyle);
         styleBuilder.titleTextColor(ta.getColor(R.styleable.AtlasConversationsRecyclerView_cellTitleTextColor, context.getResources().getColor(R.color.atlas_text_gray)));
@@ -171,5 +186,11 @@ public class AtlasConversationsRecyclerView extends RecyclerView {
         styleBuilder.avatarStyle(avatarStyleBuilder.build());
         ta.recycle();
         conversationStyle = styleBuilder.build();
+    }
+
+    // Filter List
+    public void filterList(String searchText)
+    {
+        mAdapter.filterList(searchText);
     }
 }

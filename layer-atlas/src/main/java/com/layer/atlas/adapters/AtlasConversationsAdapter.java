@@ -25,7 +25,8 @@ import java.text.DateFormat;
 import java.util.Collection;
 import java.util.HashSet;
 
-public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConversationsAdapter.ViewHolder> implements AtlasBaseAdapter<Conversation>, RecyclerViewController.Callback {
+public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConversationsAdapter.ViewHolder> implements AtlasBaseAdapter<Conversation>, RecyclerViewController.Callback 
+{
     protected final LayerClient mLayerClient;
     protected final ParticipantProvider mParticipantProvider;
     protected final Picasso mPicasso;
@@ -36,39 +37,38 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
     private OnConversationClickListener mConversationClickListener;
     private ViewHolder.OnClickListener mViewHolderClickListener;
 
-    private final DateFormat mDateFormat;
-    private final DateFormat mTimeFormat;
     private ConversationStyle conversationStyle;
 
-    public AtlasConversationsAdapter(Context context, LayerClient client, ParticipantProvider participantProvider, Picasso picasso) {
+    public AtlasConversationsAdapter(Context context, LayerClient client, ParticipantProvider participantProvider, Picasso picasso)
+    {
         this(context, client, participantProvider, picasso, null);
     }
 
-    public AtlasConversationsAdapter(Context context, LayerClient client, ParticipantProvider participantProvider, Picasso picasso, Collection<String> updateAttributes) {
-        Query<Conversation> query = Query.builder(Conversation.class)
-                /* Only show conversations we're still a member of */
-                .predicate(new Predicate(Conversation.Property.PARTICIPANT_COUNT, Predicate.Operator.GREATER_THAN, 1))
-
-                /* Sort by the last Message's sentAt time */
-                .sortDescriptor(new SortDescriptor(Conversation.Property.LAST_MESSAGE_SENT_AT, SortDescriptor.Order.DESCENDING))
-                .build();
-        mQueryController = client.newRecyclerViewController(query, updateAttributes, this);
+    public AtlasConversationsAdapter(Context context, LayerClient client, ParticipantProvider participantProvider, Picasso picasso, Collection<String> updateAttributes)
+    {
+        mQueryController = client.newRecyclerViewController(defaultQuery(), updateAttributes, this);
         mLayerClient = client;
         mParticipantProvider = participantProvider;
         mPicasso = picasso;
         mInflater = LayoutInflater.from(context);
-        mDateFormat = android.text.format.DateFormat.getDateFormat(context);
-        mTimeFormat = android.text.format.DateFormat.getTimeFormat(context);
-        mViewHolderClickListener = new ViewHolder.OnClickListener() {
+
+        mViewHolderClickListener = new ViewHolder.OnClickListener()
+        {
             @Override
-            public void onClick(ViewHolder viewHolder) {
-                if (mConversationClickListener == null) return;
+            public void onClick(ViewHolder viewHolder)
+            {
+                if (mConversationClickListener == null)
+                    return;
+
                 mConversationClickListener.onConversationClick(AtlasConversationsAdapter.this, viewHolder.getConversation());
             }
 
             @Override
-            public boolean onLongClick(ViewHolder viewHolder) {
-                if (mConversationClickListener == null) return false;
+            public boolean onLongClick(ViewHolder viewHolder)
+            {
+                if (mConversationClickListener == null)
+                    return false;
+
                 return mConversationClickListener.onConversationLongClick(AtlasConversationsAdapter.this, viewHolder.getConversation());
             }
         };
@@ -78,42 +78,94 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
     /**
      * Refreshes this adapter by re-running the underlying Query.
      */
-    public void refresh() {
+    public void refresh()
+    {
         mQueryController.execute();
     }
 
+
+    public void filterList(String searchText)
+    {
+        if(searchText != null && searchText.length() > 0)
+        {
+            Map<String, Participant> participantMap = mParticipantProvider.getMatchingParticipants(searchText, null);
+            Query<Conversation> conversationQuery = filterQuery(participantMap.keySet());
+            mQueryController.setQuery(conversationQuery);
+        }
+        else
+        {
+            mQueryController.setQuery(defaultQuery());
+        }
+        mQueryController.execute();
+    }
+
+    private Query<Conversation> filterQuery(Set<String> participantIds)
+    {
+        participantIds.remove(mLayerClient.getAuthenticatedUserId());  // don't use the current user's id
+        return Query.builder(Conversation.class)
+                .predicate(new CompoundPredicate(CompoundPredicate.Type.AND,
+                        new Predicate(Conversation.Property.PARTICIPANT_COUNT, Predicate.Operator.GREATER_THAN, 1),
+                        new Predicate(Conversation.Property.PARTICIPANTS, Predicate.Operator.IN, participantIds)))
+                // Sort by the last Message's sentAt time
+                .sortDescriptor(new SortDescriptor(Conversation.Property.LAST_MESSAGE_SENT_AT, SortDescriptor.Order.DESCENDING))
+                .build();
+    }
+
+    private Query<Conversation> defaultQuery()
+    {
+        return Query.builder(Conversation.class)
+                /* Only show conversations we're still a member of */
+                .predicate(new Predicate(Conversation.Property.PARTICIPANT_COUNT, Predicate.Operator.GREATER_THAN, 1))
+
+                /* Sort by the last Message's sentAt time */
+                .sortDescriptor(new SortDescriptor(Conversation.Property.LAST_MESSAGE_SENT_AT, SortDescriptor.Order.DESCENDING))
+                .build();
+    }
 
     //==============================================================================================
     // Initial message history
     //==============================================================================================
 
-    public AtlasConversationsAdapter setInitialHistoricMessagesToFetch(long initialHistory) {
+    public AtlasConversationsAdapter setInitialHistoricMessagesToFetch(long initialHistory)
+    {
         mInitialHistory = initialHistory;
         return this;
     }
 
-    public void setStyle(ConversationStyle conversationStyle) {
+    public void setStyle(ConversationStyle conversationStyle)
+    {
         this.conversationStyle = conversationStyle;
     }
 
-    private void syncInitialMessages(final int start, final int length) {
-        new Thread(new Runnable() {
+    private void syncInitialMessages(final int start, final int length)
+    {
+        new Thread(new Runnable()
+        {
             @Override
-            public void run() {
+            public void run()
+            {
                 long desiredHistory = mInitialHistory;
-                if (desiredHistory <= 0) return;
-                for (int i = start; i < start + length; i++) {
+                if (desiredHistory <= 0)
+                    return;
+
+                for (int i = start; i < start + length; i++)
+                {
                     try {
                         final Conversation conversation = getItem(i);
-                        if (conversation == null || conversation.getHistoricSyncStatus() != Conversation.HistoricSyncStatus.MORE_AVAILABLE) {
+                        if (conversation == null || conversation.getHistoricSyncStatus() != Conversation.HistoricSyncStatus.MORE_AVAILABLE)
+                        {
                             continue;
                         }
                         Query<Message> localCountQuery = Query.builder(Message.class)
                                 .predicate(new Predicate(Message.Property.CONVERSATION, Predicate.Operator.EQUAL_TO, conversation))
                                 .build();
+
                         long delta = desiredHistory - mLayerClient.executeQueryForCount(localCountQuery);
-                        if (delta > 0) conversation.syncMoreHistoricMessages((int) delta);
-                    } catch (IndexOutOfBoundsException e) {
+                        if (delta > 0)
+                            conversation.syncMoreHistoricMessages((int) delta);
+                    }
+                    catch (IndexOutOfBoundsException e)
+                    {
                         // Concurrent modification
                     }
                 }
@@ -125,8 +177,8 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
     //==============================================================================================
     // Listeners
     //==============================================================================================
-
-    public AtlasConversationsAdapter setOnConversationClickListener(OnConversationClickListener conversationClickListener) {
+    public AtlasConversationsAdapter setOnConversationClickListener(OnConversationClickListener conversationClickListener)
+    {
         mConversationClickListener = conversationClickListener;
         return this;
     }
@@ -135,66 +187,93 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
     //==============================================================================================
     // Adapter
     //==============================================================================================
-
     @Override
-    public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType)
+    {
         ViewHolder viewHolder = new ViewHolder(mInflater.inflate(ViewHolder.RESOURCE_ID, parent, false), conversationStyle);
         viewHolder.setClickListener(mViewHolderClickListener);
         viewHolder.mAvatarCluster
                 .init(mParticipantProvider, mPicasso)
                 .setStyle(conversationStyle.getAvatarStyle());
+
+        viewHolder.mSwipable.setBackgroundResource(com.keeptruckin.android.R.drawable.conversation_divider);
+
         return viewHolder;
     }
 
     @Override
-    public void onBindViewHolder(ViewHolder viewHolder, int position) {
+    public void onBindViewHolder(ViewHolder viewHolder, int position)
+    {
         mQueryController.updateBoundPosition(position);
         Conversation conversation = mQueryController.getItem(position);
-        Message lastMessage = conversation.getLastMessage();
         Context context = viewHolder.itemView.getContext();
+        Message lastMessage = conversation.getLastMessage();
+        if (NotificationCellFactory.isType(lastMessage))
+        {
+            lastMessage = null;  // null it out in case the notification is the only message in the conversation
+            List<Message> messages = mLayerClient.getMessages(conversation);
+            for (int i = messages.size() - 1; i > 0; i--)
+            {
+                lastMessage = messages.get(i);
+                if (!NotificationCellFactory.isType(lastMessage))
+                    break;
+            }
+        }
 
         viewHolder.setConversation(conversation);
-        HashSet<String> participantIds = new HashSet<String>(conversation.getParticipants());
+        HashSet<String> participantIds = new HashSet<>(conversation.getParticipants());
         participantIds.remove(mLayerClient.getAuthenticatedUserId());
         viewHolder.mAvatarCluster.setParticipants(participantIds);
-        viewHolder.mTitleView.setText(Util.getConversationTitle(mLayerClient, mParticipantProvider, conversation));
+        viewHolder.mTitleView.setText(LayerConversationTitle.getTitle(mLayerClient, mParticipantProvider, conversation));
         viewHolder.applyStyle(conversation.getTotalUnreadMessageCount() > 0);
 
-        if (lastMessage == null) {
+        if (lastMessage == null)
+        {
             viewHolder.mMessageView.setText(null);
             viewHolder.mTimeView.setText(null);
-        } else {
-            viewHolder.mMessageView.setText(Util.getLastMessageString(context, lastMessage));
-            if (lastMessage.getSentAt() == null) {
+        }
+        else
+        {
+            viewHolder.mMessageView.setText(LayerPreviewMessage.getPreviewMessage(context, lastMessage));
+            if (lastMessage.getSentAt() == null)
+            {
                 viewHolder.mTimeView.setText(null);
-            } else {
-                viewHolder.mTimeView.setText(Util.formatTime(context, lastMessage.getSentAt(), mTimeFormat, mDateFormat));
+            }
+            else
+            {
+                String timestamp = DateUtil.messageDate(lastMessage.getSentAt(), new Date());
+                viewHolder.mTimeView.setText(timestamp);
             }
         }
     }
 
     @Override
-    public int getItemCount() {
+    public int getItemCount()
+    {
         return mQueryController.getItemCount();
     }
 
     @Override
-    public Integer getPosition(Conversation conversation) {
+    public Integer getPosition(Conversation conversation)
+    {
         return mQueryController.getPosition(conversation);
     }
 
     @Override
-    public Integer getPosition(Conversation conversation, int lastPosition) {
+    public Integer getPosition(Conversation conversation, int lastPosition)
+    {
         return mQueryController.getPosition(conversation, lastPosition);
     }
 
     @Override
-    public Conversation getItem(int position) {
+    public Conversation getItem(int position)
+    {
         return mQueryController.getItem(position);
     }
 
     @Override
-    public Conversation getItem(RecyclerView.ViewHolder viewHolder) {
+    public Conversation getItem(RecyclerView.ViewHolder viewHolder)
+    {
         return ((ViewHolder) viewHolder).getConversation();
     }
 
@@ -204,7 +283,8 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
     //==============================================================================================
 
     @Override
-    public void onQueryDataSetChanged(RecyclerViewController controller) {
+    public void onQueryDataSetChanged(RecyclerViewController controller)
+    {
         syncInitialMessages(0, getItemCount());
         notifyDataSetChanged();
     }
@@ -215,34 +295,40 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
     }
 
     @Override
-    public void onQueryItemRangeChanged(RecyclerViewController controller, int positionStart, int itemCount) {
+    public void onQueryItemRangeChanged(RecyclerViewController controller, int positionStart, int itemCount)
+    {
         notifyItemRangeChanged(positionStart, itemCount);
     }
 
     @Override
-    public void onQueryItemInserted(RecyclerViewController controller, int position) {
+    public void onQueryItemInserted(RecyclerViewController controller, int position)
+    {
         syncInitialMessages(position, 1);
         notifyItemInserted(position);
     }
 
     @Override
-    public void onQueryItemRangeInserted(RecyclerViewController controller, int positionStart, int itemCount) {
+    public void onQueryItemRangeInserted(RecyclerViewController controller, int positionStart, int itemCount)
+    {
         syncInitialMessages(positionStart, itemCount);
         notifyItemRangeInserted(positionStart, itemCount);
     }
 
     @Override
-    public void onQueryItemRemoved(RecyclerViewController controller, int position) {
+    public void onQueryItemRemoved(RecyclerViewController controller, int position)
+    {
         notifyItemRemoved(position);
     }
 
     @Override
-    public void onQueryItemRangeRemoved(RecyclerViewController controller, int positionStart, int itemCount) {
+    public void onQueryItemRangeRemoved(RecyclerViewController controller, int positionStart, int itemCount)
+    {
         notifyItemRangeRemoved(positionStart, itemCount);
     }
 
     @Override
-    public void onQueryItemMoved(RecyclerViewController controller, int fromPosition, int toPosition) {
+    public void onQueryItemMoved(RecyclerViewController controller, int fromPosition, int toPosition)
+    {
         notifyItemMoved(fromPosition, toPosition);
     }
 
@@ -251,7 +337,8 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
     // Inner classes
     //==============================================================================================
 
-    static class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener, View.OnLongClickListener {
+    static class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener, View.OnLongClickListener
+    {
         // Layout to inflate
         public final static int RESOURCE_ID = R.layout.atlas_conversation_item;
 
@@ -260,12 +347,14 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
         protected AtlasAvatar mAvatarCluster;
         protected TextView mMessageView;
         protected TextView mTimeView;
+        protected ViewGroup mSwipable;
 
         protected ConversationStyle conversationStyle;
         protected Conversation mConversation;
         protected OnClickListener mClickListener;
 
-        public ViewHolder(View itemView, ConversationStyle conversationStyle) {
+        public ViewHolder(View itemView, ConversationStyle conversationStyle)
+        {
             super(itemView);
             itemView.setOnClickListener(this);
             itemView.setOnLongClickListener(this);
@@ -275,10 +364,11 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
             mTitleView = (TextView) itemView.findViewById(R.id.title);
             mMessageView = (TextView) itemView.findViewById(R.id.last_message);
             mTimeView = (TextView) itemView.findViewById(R.id.time);
-            itemView.setBackgroundColor(conversationStyle.getCellBackgroundColor());
+            mSwipable = (ViewGroup)itemView.findViewById(R.id.swipeable);
         }
 
-        public void applyStyle(boolean unread) {
+        public void applyStyle(boolean unread)
+        {
             mTitleView.setTextColor(unread ? conversationStyle.getTitleUnreadTextColor() : conversationStyle.getTitleTextColor());
             mTitleView.setTypeface(unread ? conversationStyle.getTitleUnreadTextTypeface() : conversationStyle.getTitleTextTypeface(), unread ? conversationStyle.getTitleUnreadTextStyle() : conversationStyle.getTitleTextStyle());
             mMessageView.setTextColor(unread ? conversationStyle.getSubtitleTextColor() : conversationStyle.getSubtitleTextColor());
@@ -287,32 +377,42 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
             mTimeView.setTypeface(conversationStyle.getDateTextTypeface());
         }
 
-        protected ViewHolder setClickListener(OnClickListener clickListener) {
+        protected ViewHolder setClickListener(OnClickListener clickListener)
+        {
             mClickListener = clickListener;
             return this;
         }
 
-        public Conversation getConversation() {
+        public Conversation getConversation()
+        {
             return mConversation;
         }
 
-        public void setConversation(Conversation conversation) {
+        public void setConversation(Conversation conversation)
+        {
             mConversation = conversation;
         }
 
         @Override
-        public void onClick(View v) {
-            if (mClickListener == null) return;
+        public void onClick(View v)
+        {
+            if (mClickListener == null)
+                return;
+
             mClickListener.onClick(this);
         }
 
         @Override
-        public boolean onLongClick(View v) {
-            if (mClickListener == null) return false;
+        public boolean onLongClick(View v)
+        {
+            if (mClickListener == null)
+                return false;
+
             return mClickListener.onLongClick(this);
         }
 
-        interface OnClickListener {
+        interface OnClickListener
+        {
             void onClick(ViewHolder viewHolder);
 
             boolean onLongClick(ViewHolder viewHolder);
@@ -322,7 +422,8 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
     /**
      * Listens for item clicks on an IntegrationConversationsAdapter.
      */
-    public interface OnConversationClickListener {
+    public interface OnConversationClickListener
+    {
         /**
          * Alerts the listener to item clicks.
          *

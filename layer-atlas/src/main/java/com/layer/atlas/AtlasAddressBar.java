@@ -45,14 +45,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class AtlasAddressBar extends LinearLayout {
+public class AtlasAddressBar extends LinearLayout 
+{
+    private static final String TAG = "AtlasAddressBar";
+
     private LayerClient mLayerClient;
     private ParticipantProvider mParticipantProvider;
     private Picasso mPicasso;
 
     private OnConversationClickListener mOnConversationClickListener;
     private OnParticipantSelectionChangeListener mOnParticipantSelectionChangeListener;
+    private OnMaxSelectedParticipantsExceededListener mOnMaxSelectedParticipantsListener;
 
+    private MaxHeightScrollView mSelectedParticipantScroll;
     private FlowLayout mSelectedParticipantLayout;
     private EmptyDelEditText mFilter;
     private RecyclerView mParticipantList;
@@ -70,31 +75,48 @@ public class AtlasAddressBar extends LinearLayout {
     private int mInputCursorColor;
     private int mListTextSize;
     private int mListTextColor;
+    private TextView mToLabel;
     private Typeface mListTextTypeface;
     private int mListTextStyle;
     private Typeface mChipTypeface;
     private int mChipStyle;
     private AvatarStyle mAvatarStyle;
 
-    public AtlasAddressBar(Context context, AttributeSet attrs) {
+    public void setOnMaxSelectedParticipantsListener(OnMaxSelectedParticipantsExceededListener listener)
+    {
+        this.mOnMaxSelectedParticipantsListener = listener;
+    }
+
+    public AtlasAddressBar(Context context, AttributeSet attrs)
+    {
         this(context, attrs, 0);
     }
 
-    public AtlasAddressBar(Context context, AttributeSet attrs, int defStyleAttr) {
+    public AtlasAddressBar(Context context, AttributeSet attrs, int defStyleAttr)
+    {
         super(context, attrs, defStyleAttr);
         parseStyle(context, attrs, defStyleAttr);
 
         LayoutInflater inflater = LayoutInflater.from(context);
-        inflater.inflate(R.layout.atlas_address_bar, this, true);
-        mSelectedParticipantLayout = (FlowLayout) findViewById(R.id.selected_participant_group);
-        mFilter = (EmptyDelEditText) findViewById(R.id.filter);
+        inflater.inflate(R.layout.kt_atlas_address_bar, this, true);
+
+        mToLabel = (TextView)findViewById(R.id.toLabel);
+
+        // filter + participants
+        mSelectedParticipantLayout = (FlowLayout) findViewById(com.layer.atlas.R.id.selected_participant_group);
+
+        // filter
+        mFilter = (EmptyDelEditText) findViewById(com.layer.atlas.R.id.filter);
+        mFilter.setInputType(InputType.TYPE_TEXT_VARIATION_PERSON_NAME|InputType.TYPE_TEXT_FLAG_CAP_WORDS);
+
         mSelectedParticipantLayout.setStretchChild(mFilter);
-        mParticipantList = (RecyclerView) findViewById(R.id.participant_list);
-        ((MaxHeightScrollView) findViewById(R.id.selected_participant_scroll)).setMaximumHeight(getResources().getDimensionPixelSize(R.dimen.atlas_selected_participant_group_max_height));
+        mParticipantList = (RecyclerView) findViewById(com.layer.atlas.R.id.participant_list);
+        mSelectedParticipantScroll =((MaxHeightScrollView) findViewById(com.layer.atlas.R.id.selected_participant_scroll)).setMaximumHeight(getResources().getDimensionPixelSize(com.layer.atlas.R.dimen.atlas_selected_participant_group_max_height));
         setOrientation(VERTICAL);
     }
 
-    public AtlasAddressBar init(LayerClient layerClient, ParticipantProvider participantProvider, Picasso picasso) {
+    public AtlasAddressBar init(LayerClient layerClient, ParticipantProvider participantProvider, Picasso picasso)
+    {
         mLayerClient = layerClient;
         mParticipantProvider = participantProvider;
         mPicasso = picasso;
@@ -108,66 +130,78 @@ public class AtlasAddressBar extends LinearLayout {
         mParticipantList.setAdapter(mAvailableConversationAdapter);
 
         // Hitting backspace with an empty search string deletes the last selected participant
-        mFilter.setOnEmptyDelListener(new EmptyDelEditText.OnEmptyDelListener() {
+        mFilter.setOnEmptyDelListener(new EmptyDelEditText.OnEmptyDelListener()
+        {
             @Override
-            public boolean onEmptyDel(EmptyDelEditText editText) {
+            public boolean onEmptyDel(EmptyDelEditText editText)
+            {
                 removeLastSelectedParticipant();
                 return true;
             }
         });
 
         // Refresh available participants and conversations with every search string change
-        mFilter.addTextChangedListener(new TextWatcher() {
+        mFilter.addTextChangedListener(new TextWatcher()
+        {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            public void beforeTextChanged(CharSequence s, int start, int count, int after)
+            {
 
             }
 
             @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            public void onTextChanged(CharSequence s, int start, int before, int count)
+            {
 
             }
 
             @Override
-            public void afterTextChanged(Editable e) {
+            public void afterTextChanged(Editable e)
+            {
                 refresh();
             }
         });
         return this;
     }
 
-    public AtlasAddressBar addTextChangedListener(TextWatcher textWatcher) {
+    public AtlasAddressBar addTextChangedListener(TextWatcher textWatcher)
+    {
         mFilter.addTextChangedListener(textWatcher);
         return this;
     }
 
-    public AtlasAddressBar removeTextChangedListener(TextWatcher textWatcher) {
+    public AtlasAddressBar removeTextChangedListener(TextWatcher textWatcher)
+    {
         mFilter.removeTextChangedListener(textWatcher);
         return this;
     }
 
-    public AtlasAddressBar setOnEditorActionListener(TextView.OnEditorActionListener listener) {
+    public AtlasAddressBar setOnEditorActionListener(TextView.OnEditorActionListener listener)
+    {
         mFilter.setOnEditorActionListener(listener);
         return this;
     }
 
-    public AtlasAddressBar setOnConversationClickListener(OnConversationClickListener onConversationClickListener) {
+    public AtlasAddressBar setOnConversationClickListener(OnConversationClickListener onConversationClickListener)
+    {
         mOnConversationClickListener = onConversationClickListener;
         return this;
     }
 
-    public AtlasAddressBar setOnParticipantSelectionChangeListener(OnParticipantSelectionChangeListener onParticipantSelectionChangeListener) {
+    public AtlasAddressBar setOnParticipantSelectionChangeListener(OnParticipantSelectionChangeListener onParticipantSelectionChangeListener)
+    {
         mOnParticipantSelectionChangeListener = onParticipantSelectionChangeListener;
         return this;
     }
 
-    public AtlasAddressBar setSuggestionsVisibility(int visibility) {
+    public AtlasAddressBar setSuggestionsVisibility(int visibility)
+    {
         mParticipantList.setVisibility(visibility);
         return this;
     }
 
-    public AtlasAddressBar setTypeface(Typeface inputTextTypeface, Typeface listTextTypeface,
-                                       Typeface avatarTextTypeface, Typeface chipTypeface) {
+    public AtlasAddressBar setTypeface(Typeface inputTextTypeface, Typeface listTextTypeface, Typeface avatarTextTypeface, Typeface chipTypeface)
+    {
         this.mInputTextTypeface = inputTextTypeface;
         this.mListTextTypeface = listTextTypeface;
         this.mChipTypeface = chipTypeface;
@@ -176,104 +210,190 @@ public class AtlasAddressBar extends LinearLayout {
         return this;
     }
 
-    public Set<String> getSelectedParticipantIds() {
-        return new LinkedHashSet<String>(mSelectedParticipantIds);
+    public void setHint(String hint)
+    {
+        mFilter.setHint(hint);
     }
 
-    public AtlasAddressBar refresh() {
-        if (mAvailableConversationAdapter == null) return this;
+    public ArrayList<String> getSelectedParticipantIds()
+    {
+        return new ArrayList<>(mSelectedParticipantIds);
+    }
+
+    public AtlasAddressBar refresh()
+    {
+        if (mAvailableConversationAdapter == null)
+            return this;
+
         mAvailableConversationAdapter.refresh(getSearchFilter(), mSelectedParticipantIds);
         return this;
     }
 
-    public AtlasAddressBar setShowConversations(boolean showConversations) {
+    public AtlasAddressBar setShowConversations(boolean showConversations)
+    {
         this.mShowConversations = showConversations;
         return this;
     }
 
-    public AtlasAddressBar setSelectedParticipants(Set<String> selectedParticipants) {
+    public AtlasAddressBar setSelectedParticipants(Set<String> selectedParticipants)
+    {
+        mSelectedParticipantIds.clear();
         mSelectedParticipantIds.addAll(selectedParticipants);
+        refresh();
+        refreshAddressBarSelected();
         return this;
     }
 
-    public void requestFilterFocus() {
+    public AtlasAddressBar addSelectedParticipant(String participantId)
+    {
+        if (participantId != null && !mSelectedParticipantIds.contains(participantId))
+            selectParticipant(participantId);
+        return this;
+    }
+
+    public void requestFilterFocus()
+    {
         mFilter.requestFocus();
     }
 
-    private boolean selectParticipant(String participantId) {
-        if (mSelectedParticipantIds.contains(participantId)) return true;
-        if (mSelectedParticipantIds.size() >= 24) return false;
+    private boolean selectParticipant(String participantId)
+    {
+        if (mSelectedParticipantIds.contains(participantId))
+            return true;
+
+        if (mSelectedParticipantIds.size() >= 24)
+        {
+            if(mOnMaxSelectedParticipantsListener != null)
+            {
+                mOnMaxSelectedParticipantsListener.onMaxSelectedParticipantsExceeded();
+            }
+            return false;
+        }
         mSelectedParticipantIds.add(participantId);
-        ParticipantChip chip = new ParticipantChip(getContext(), mParticipantProvider, participantId, mPicasso);
+
+        final KTParticipantChip chip = new KTParticipantChip(getContext(), mParticipantProvider, participantId, mChipTypeface);
+        chip.setOnClickListener(new OnClickListener()
+        {
+            @Override
+            public void onClick(View v)
+            {
+                unselectParticipant(chip);
+            }
+        });
         mSelectedParticipantLayout.addView(chip, mSelectedParticipantLayout.getChildCount() - 1);
         mFilter.setText(null);
         refresh();
-        if (mOnParticipantSelectionChangeListener != null) {
+        if (mOnParticipantSelectionChangeListener != null)
+        {
             mOnParticipantSelectionChangeListener.onParticipantSelectionChanged(this, new ArrayList<String>(mSelectedParticipantIds));
         }
+
+        // scroll to bottom
+        View lastChild = mSelectedParticipantScroll.getChildAt(mSelectedParticipantScroll.getChildCount() - 1);
+        int bottom = lastChild.getBottom() + mSelectedParticipantScroll.getPaddingBottom();
+        int sy = mSelectedParticipantScroll.getScrollY();
+        int sh = mSelectedParticipantScroll.getHeight();
+        int delta = bottom - (sy + sh);
+
+        mSelectedParticipantScroll.smoothScrollBy(0, delta);
+
         return true;
     }
 
-    private void unselectParticipant(ParticipantChip chip) {
-        if (!mSelectedParticipantIds.contains(chip.mParticipantId)) return;
+    private void unselectParticipant(KTParticipantChip chip)
+    {
+        if (!mSelectedParticipantIds.contains(chip.mParticipantId))
+            return;
+
         mSelectedParticipantIds.remove(chip.mParticipantId);
         mSelectedParticipantLayout.removeView(chip);
         refresh();
-        if (mOnParticipantSelectionChangeListener != null) {
+        if (mOnParticipantSelectionChangeListener != null)
+        {
             mOnParticipantSelectionChangeListener.onParticipantSelectionChanged(this, new ArrayList<String>(mSelectedParticipantIds));
         }
     }
 
-    private String getSearchFilter() {
+    private void refreshAddressBarSelected()
+    {
+        // remove all chips
+        ArrayList<String> selectedIds = new ArrayList<>(mSelectedParticipantIds);  // removing from the address bar also removes from the array
+        String id = removeLastSelectedParticipant();
+        while (id != null)
+        {
+            id = removeLastSelectedParticipant();
+        }
+
+        // add chips back
+        DebugLog.d(TAG, "Refresh: " + selectedIds.toString());
+        for (String participantId : selectedIds)
+        {
+            selectParticipant(participantId);
+        }
+    }
+
+    public Participant getFirstParticipant()
+    {
+        return mAvailableConversationAdapter.getFirstParticipant();
+    }
+
+    private String getSearchFilter()
+    {
         String s = mFilter.getText().toString();
         return s.trim().isEmpty() ? null : s;
     }
 
-    private String removeLastSelectedParticipant() {
-        ParticipantChip lastChip = null;
-        for (int i = 0; i < mSelectedParticipantLayout.getChildCount(); i++) {
+    private String removeLastSelectedParticipant()
+    {
+        KTParticipantChip lastChip = null;
+        for (int i = 0; i < mSelectedParticipantLayout.getChildCount(); i++)
+        {
             View v = mSelectedParticipantLayout.getChildAt(i);
-            if (v instanceof ParticipantChip) lastChip = (ParticipantChip) v;
+            if (v instanceof KTParticipantChip) lastChip = (KTParticipantChip) v;
         }
-        if (lastChip == null) return null;
+        if (lastChip == null)
+            return null;
+
         unselectParticipant(lastChip);
         return lastChip.mParticipantId;
     }
 
-    private void parseStyle(Context context, AttributeSet attrs, int defStyle) {
-        TypedArray ta = context.getTheme().obtainStyledAttributes(attrs, R.styleable.AtlasAddressBar, R.attr.AtlasAddressBar, defStyle);
+    private void parseStyle(Context context, AttributeSet attrs, int defStyle)
+    {
+        TypedArray ta = context.getTheme().obtainStyledAttributes(attrs, com.layer.atlas.R.styleable.AtlasAddressBar, com.layer.atlas.R.attr.AtlasAddressBar, defStyle);
         Resources resources = context.getResources();
-        this.mInputTextSize = ta.getDimensionPixelSize(R.styleable.AtlasAddressBar_inputTextSize, resources.getDimensionPixelSize(R.dimen.atlas_text_size_input));
-        this.mInputTextColor = ta.getColor(R.styleable.AtlasAddressBar_inputTextColor, resources.getColor(R.color.atlas_text_black));
-        this.mInputTextStyle = ta.getInt(R.styleable.AtlasAddressBar_inputTextStyle, Typeface.NORMAL);
-        String inputTextTypefaceName = ta.getString(R.styleable.AtlasAddressBar_inputTextTypeface);
+        this.mInputTextSize = ta.getDimensionPixelSize(com.layer.atlas.R.styleable.AtlasAddressBar_inputTextSize, resources.getDimensionPixelSize(com.layer.atlas.R.dimen.atlas_text_size_input));
+        this.mInputTextColor = ta.getColor(com.layer.atlas.R.styleable.AtlasAddressBar_inputTextColor, resources.getColor(com.layer.atlas.R.color.atlas_text_black));
+        this.mInputTextStyle = ta.getInt(com.layer.atlas.R.styleable.AtlasAddressBar_inputTextStyle, Typeface.NORMAL);
+        String inputTextTypefaceName = ta.getString(com.layer.atlas.R.styleable.AtlasAddressBar_inputTextTypeface);
         this.mInputTextTypeface = inputTextTypefaceName != null ? Typeface.create(inputTextTypefaceName, mInputTextStyle) : null;
-        this.mInputCursorColor = ta.getColor(R.styleable.AtlasAddressBar_inputCursorColor, resources.getColor(R.color.atlas_color_primary_blue));
-        this.mInputUnderlineColor = ta.getColor(R.styleable.AtlasAddressBar_inputUnderlineColor, resources.getColor(R.color.atlas_color_primary_blue));
+        this.mInputCursorColor = ta.getColor(com.layer.atlas.R.styleable.AtlasAddressBar_inputCursorColor, resources.getColor(com.layer.atlas.R.color.atlas_color_primary_blue));
+        this.mInputUnderlineColor = ta.getColor(com.layer.atlas.R.styleable.AtlasAddressBar_inputUnderlineColor, resources.getColor(com.layer.atlas.R.color.atlas_color_primary_blue));
 
-        this.mListTextSize = ta.getDimensionPixelSize(R.styleable.AtlasAddressBar_listTextSize, resources.getDimensionPixelSize(R.dimen.atlas_text_size_secondary_item));
-        this.mListTextColor = ta.getColor(R.styleable.AtlasAddressBar_listTextColor, resources.getColor(R.color.atlas_text_black));
-        this.mListTextStyle = ta.getInt(R.styleable.AtlasAddressBar_listTextStyle, Typeface.NORMAL);
-        String listTextTypefaceName = ta.getString(R.styleable.AtlasAddressBar_listTextTypeface);
+        this.mListTextSize = ta.getDimensionPixelSize(com.layer.atlas.R.styleable.AtlasAddressBar_listTextSize, resources.getDimensionPixelSize(com.layer.atlas.R.dimen.atlas_text_size_secondary_item));
+        this.mListTextColor = ta.getColor(com.layer.atlas.R.styleable.AtlasAddressBar_listTextColor, resources.getColor(com.layer.atlas.R.color.atlas_text_black));
+        this.mListTextStyle = ta.getInt(com.layer.atlas.R.styleable.AtlasAddressBar_listTextStyle, Typeface.NORMAL);
+        String listTextTypefaceName = ta.getString(com.layer.atlas.R.styleable.AtlasAddressBar_listTextTypeface);
         this.mListTextTypeface = listTextTypefaceName != null ? Typeface.create(listTextTypefaceName, mInputTextStyle) : null;
 
-        this.mChipStyle = ta.getInt(R.styleable.AtlasAddressBar_chipStyle, Typeface.NORMAL);
-        String chipTypefaceName = ta.getString(R.styleable.AtlasAddressBar_chipTypeface);
+        this.mChipStyle = ta.getInt(com.layer.atlas.R.styleable.AtlasAddressBar_chipStyle, Typeface.NORMAL);
+        String chipTypefaceName = ta.getString(com.layer.atlas.R.styleable.AtlasAddressBar_chipTypeface);
         this.mChipTypeface = chipTypefaceName != null ? Typeface.create(chipTypefaceName, mChipStyle) : null;
 
         AvatarStyle.Builder avatarStyleBuilder = new AvatarStyle.Builder();
-        avatarStyleBuilder.avatarBackgroundColor(ta.getColor(R.styleable.AtlasAddressBar_avatarBackgroundColor, resources.getColor(R.color.atlas_avatar_background)));
-        avatarStyleBuilder.avatarTextColor(ta.getColor(R.styleable.AtlasAddressBar_avatarTextColor, resources.getColor(R.color.atlas_avatar_text)));
-        avatarStyleBuilder.avatarBorderColor(ta.getColor(R.styleable.AtlasAddressBar_avatarBorderColor, resources.getColor(R.color.atlas_avatar_border)));
-        int avatarTextStyle = ta.getInt(R.styleable.AtlasAddressBar_avatarTextStyle, Typeface.NORMAL);
-        String avatarTextTypefaceName = ta.getString(R.styleable.AtlasAddressBar_avatarTextTypeface);
+        avatarStyleBuilder.avatarBackgroundColor(ta.getColor(com.layer.atlas.R.styleable.AtlasAddressBar_avatarBackgroundColor, resources.getColor(com.layer.atlas.R.color.atlas_avatar_background)));
+        avatarStyleBuilder.avatarTextColor(ta.getColor(com.layer.atlas.R.styleable.AtlasAddressBar_avatarTextColor, resources.getColor(com.layer.atlas.R.color.atlas_avatar_text)));
+        avatarStyleBuilder.avatarBorderColor(ta.getColor(com.layer.atlas.R.styleable.AtlasAddressBar_avatarBorderColor, resources.getColor(com.layer.atlas.R.color.atlas_avatar_border)));
+        int avatarTextStyle = ta.getInt(com.layer.atlas.R.styleable.AtlasAddressBar_avatarTextStyle, Typeface.NORMAL);
+        String avatarTextTypefaceName = ta.getString(com.layer.atlas.R.styleable.AtlasAddressBar_avatarTextTypeface);
         avatarStyleBuilder.avatarTextTypeface(inputTextTypefaceName != null ? Typeface.create(avatarTextTypefaceName, avatarTextStyle) : null);
         this.mAvatarStyle = avatarStyleBuilder.build();
 
         ta.recycle();
     }
 
-    private void applyStyle() {
+    private void applyStyle()
+    {
         mFilter.setTextColor(mInputTextColor);
         mFilter.setTextSize(TypedValue.COMPLEX_UNIT_PX, mInputTextSize);
         EditTextUtil.setCursorDrawableColor(mFilter, mInputCursorColor);
@@ -281,8 +401,10 @@ public class AtlasAddressBar extends LinearLayout {
         applyTypeface();
     }
 
-    private void applyTypeface() {
+    private void applyTypeface()
+    {
         mFilter.setTypeface(mInputTextTypeface, mInputTextStyle);
+        mToLabel.setTypeface(mInputTextTypeface, mInputTextStyle);
         mAvailableConversationAdapter.notifyDataSetChanged();
     }
 
@@ -290,10 +412,14 @@ public class AtlasAddressBar extends LinearLayout {
      * Automatically refresh on resume
      */
     @Override
-    protected void onVisibilityChanged(View changedView, int visibility) {
+    protected void onVisibilityChanged(View changedView, int visibility)
+    {
         super.onVisibilityChanged(changedView, visibility);
-        if (visibility != View.VISIBLE) return;
+        if (visibility != View.VISIBLE)
+            return;
+
         refresh();
+        refreshAddressBarSelected();
     }
 
     /**
@@ -302,7 +428,9 @@ public class AtlasAddressBar extends LinearLayout {
     @Override
     protected Parcelable onSaveInstanceState() {
         Parcelable superState = super.onSaveInstanceState();
-        if (mSelectedParticipantIds.isEmpty()) return superState;
+        if (mSelectedParticipantIds.isEmpty())
+            return superState;
+
         SavedState savedState = new SavedState(superState);
         savedState.mSelectedParticipantIds = new ArrayList<String>(mSelectedParticipantIds);
         return savedState;
@@ -312,8 +440,10 @@ public class AtlasAddressBar extends LinearLayout {
      * Restore selected participants
      */
     @Override
-    protected void onRestoreInstanceState(Parcelable state) {
-        if (!(state instanceof SavedState)) {
+    protected void onRestoreInstanceState(Parcelable state)
+    {
+        if (!(state instanceof SavedState))
+        {
             super.onRestoreInstanceState(state);
             return;
         }
@@ -321,94 +451,56 @@ public class AtlasAddressBar extends LinearLayout {
         SavedState savedState = (SavedState) state;
         super.onRestoreInstanceState(savedState.getSuperState());
 
-        if (savedState.mSelectedParticipantIds != null) {
+        // when permissions are revoked, mParticipantProvider is null
+        // try to select with a null participant provider causes a npe
+        if (savedState.mSelectedParticipantIds != null && mParticipantProvider != null)
+        {
             mSelectedParticipantIds.clear();
-            for (String participantId : savedState.mSelectedParticipantIds) {
+            for (String participantId : savedState.mSelectedParticipantIds)
+            {
                 selectParticipant(participantId);
             }
         }
     }
 
-    private static class SavedState extends BaseSavedState {
+    private static class SavedState extends BaseSavedState
+    {
         List<String> mSelectedParticipantIds;
 
-        public SavedState(Parcelable superState) {
+        public SavedState(Parcelable superState)
+        {
             super(superState);
         }
 
         @Override
-        public void writeToParcel(Parcel dest, int flags) {
+        public void writeToParcel(Parcel dest, int flags)
+        {
             super.writeToParcel(dest, flags);
             dest.writeStringList(mSelectedParticipantIds);
         }
 
-        public static final Parcelable.Creator<SavedState> CREATOR = new Parcelable.Creator<SavedState>() {
-            public SavedState createFromParcel(Parcel in) {
+        public static final Parcelable.Creator<SavedState> CREATOR = new Parcelable.Creator<SavedState>()
+        {
+            public SavedState createFromParcel(Parcel in)
+            {
                 return new SavedState(in);
             }
 
-            public SavedState[] newArray(int size) {
+            public SavedState[] newArray(int size)
+            {
                 return new SavedState[size];
             }
         };
 
-        private SavedState(Parcel in) {
+        private SavedState(Parcel in)
+        {
             super(in);
             mSelectedParticipantIds = in.createStringArrayList();
         }
     }
 
-    /**
-     * ParticipantChip implements the View used to populate the selected participant FlowLayout.
-     */
-    private class ParticipantChip extends LinearLayout {
-        private String mParticipantId;
-
-        private AtlasAvatar mAvatar;
-        private TextView mName;
-        private ImageView mRemove;
-
-        public ParticipantChip(Context context, ParticipantProvider participantProvider, String participantId, Picasso picasso) {
-            super(context);
-            LayoutInflater inflater = LayoutInflater.from(context);
-            Resources r = getContext().getResources();
-            mParticipantId = participantId;
-
-            // Inflate and cache views
-            inflater.inflate(R.layout.atlas_participant_chip, this, true);
-            mAvatar = (AtlasAvatar) findViewById(R.id.avatar);
-            mName = (TextView) findViewById(R.id.name);
-            mRemove = (ImageView) findViewById(R.id.remove);
-
-            // Set Style
-            mName.setTypeface(mChipTypeface);
-
-            // Set layout
-            int height = r.getDimensionPixelSize(R.dimen.atlas_chip_height);
-            int margin = r.getDimensionPixelSize(R.dimen.atlas_chip_margin);
-            FlowLayout.LayoutParams p = new FlowLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, height);
-            p.setMargins(margin, margin, margin, margin);
-            setLayoutParams(p);
-            setOrientation(HORIZONTAL);
-            setBackgroundDrawable(r.getDrawable(R.drawable.atlas_participant_chip_background));
-
-            // Initialize participant data
-            Participant participant = participantProvider.getParticipant(participantId);
-            mName.setText(participant.getName());
-            mAvatar.init(participantProvider, picasso)
-                    .setStyle(mAvatarStyle)
-                    .setParticipants(participantId);
-
-            setOnClickListener(new OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    unselectParticipant(ParticipantChip.this);
-                }
-            });
-        }
-    }
-
-    private enum Type {
+    private enum Type
+    {
         PARTICIPANT,
         CONVERSATION
     }
@@ -418,7 +510,8 @@ public class AtlasAddressBar extends LinearLayout {
      * Conversations.  Items are filtered by a participant filter string and by a set of selected
      * Participants.
      */
-    private class AvailableConversationAdapter extends RecyclerView.Adapter<AvailableConversationAdapter.ViewHolder> implements RecyclerViewController.Callback {
+    private class AvailableConversationAdapter extends RecyclerView.Adapter<AvailableConversationAdapter.ViewHolder> implements RecyclerViewController.Callback
+    {
         protected final LayerClient mLayerClient;
         protected final ParticipantProvider mParticipantProvider;
         protected final Picasso mPicasso;
@@ -428,11 +521,13 @@ public class AtlasAddressBar extends LinearLayout {
         private final ArrayList<Participant> mParticipants = new ArrayList<Participant>();
         private final Map<String, Participant> mParticipantMap = new HashMap<String, Participant>();
 
-        public AvailableConversationAdapter(LayerClient client, ParticipantProvider participantProvider, Picasso picasso) {
+        public AvailableConversationAdapter(LayerClient client, ParticipantProvider participantProvider, Picasso picasso)
+        {
             this(client, participantProvider, picasso, null);
         }
 
-        public AvailableConversationAdapter(LayerClient client, ParticipantProvider participantProvider, Picasso picasso, Collection<String> updateAttributes) {
+        public AvailableConversationAdapter(LayerClient client, ParticipantProvider participantProvider, Picasso picasso, Collection<String> updateAttributes)
+        {
             mQueryController = client.newRecyclerViewController(null, updateAttributes, this);
             mLayerClient = client;
             mParticipantProvider = participantProvider;
@@ -440,44 +535,62 @@ public class AtlasAddressBar extends LinearLayout {
             setHasStableIds(false);
         }
 
+        public Participant getFirstParticipant()
+        {
+            return mParticipants != null && mParticipants.size() > 0 ? mParticipants.get(0) : null;
+        }
+
         /**
          * Refreshes this adapter by re-querying the ParticipantProvider and filtering Conversations
          * to return only those Conversations with the given set of selected Participants.
          */
-        public void refresh(String filter, Set<String> selectedParticipantIds) {
+        public void refresh(String filter, Set<String> selectedParticipantIds)
+        {
             // Apply text search filter to available participants
             String userId = mLayerClient.getAuthenticatedUserId();
-            synchronized (mParticipantIds) {
+            synchronized (mParticipantIds)
+            {
                 mParticipantProvider.getMatchingParticipants(filter, mParticipantMap);
                 mParticipants.clear();
-                for (Map.Entry<String, Participant> entry : mParticipantMap.entrySet()) {
+                for (Map.Entry<String, Participant> entry : mParticipantMap.entrySet())
+                {
                     // Don't show participants we've already selected
-                    if (selectedParticipantIds.contains(entry.getKey())) continue;
-                    if (entry.getKey().equals(userId)) continue;
+                    if (selectedParticipantIds.contains(entry.getKey()))
+                        continue;
+
+                    if (entry.getKey().equals(userId))
+                        continue;
+
                     mParticipants.add(entry.getValue());
                 }
                 Collections.sort(mParticipants);
 
                 mParticipantIds.clear();
-                for (Participant p : mParticipants) {
+                for (Participant p : mParticipants)
+                {
                     mParticipantIds.add(p.getId());
                 }
             }
             // TODO: compute add/remove/move and notify those instead of complete notify
             notifyDataSetChanged();
 
-            if (mShowConversations) {
+            if (mShowConversations)
+            {
                 queryConversations(selectedParticipantIds);
             }
         }
 
-        private void queryConversations(Set<String> selectedParticipantIds) {
+        private void queryConversations(Set<String> selectedParticipantIds)
+        {
             // Filter down to only those conversations including the selected participants, hiding one-on-one conversations
             Query.Builder<Conversation> builder = Query.builder(Conversation.class)
                     .sortDescriptor(new SortDescriptor(Conversation.Property.LAST_MESSAGE_SENT_AT, SortDescriptor.Order.DESCENDING));
-            if (selectedParticipantIds.isEmpty()) {
+            if (selectedParticipantIds.isEmpty())
+            {
                 builder.predicate(new Predicate(Conversation.Property.PARTICIPANT_COUNT, Predicate.Operator.GREATER_THAN, 2));
-            } else {
+            }
+            else
+            {
                 builder.predicate(new CompoundPredicate(CompoundPredicate.Type.AND,
                         new Predicate(Conversation.Property.PARTICIPANT_COUNT, Predicate.Operator.GREATER_THAN, 2),
                         new Predicate(Conversation.Property.PARTICIPANTS, Predicate.Operator.IN, selectedParticipantIds)));
@@ -491,7 +604,8 @@ public class AtlasAddressBar extends LinearLayout {
         //==============================================================================================
 
         @Override
-        public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+        public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType)
+        {
             ViewHolder viewHolder = new ViewHolder(parent);
             viewHolder.mAvatar
                     .init(mParticipantProvider, mPicasso)
@@ -500,32 +614,43 @@ public class AtlasAddressBar extends LinearLayout {
         }
 
         @Override
-        public void onBindViewHolder(ViewHolder viewHolder, int position) {
-            synchronized (mParticipantIds) {
-                switch (getType(position)) {
-                    case PARTICIPANT: {
+        public void onBindViewHolder(ViewHolder viewHolder, int position)
+        {
+            synchronized (mParticipantIds)
+            {
+                switch (getType(position))
+                {
+                    case PARTICIPANT:
+                    {
                         position = adapterPositionToParticipantPosition(position);
                         String participantId = mParticipantIds.get(position);
                         Participant participant = mParticipants.get(position);
                         viewHolder.mTitle.setText(participant.getName());
                         viewHolder.itemView.setTag(participantId);
-                        viewHolder.itemView.setOnClickListener(new OnClickListener() {
+                        viewHolder.itemView.setOnClickListener(new OnClickListener()
+                        {
                             @Override
-                            public void onClick(View v) {
+                            public void onClick(View v)
+                            {
                                 selectParticipant((String) v.getTag());
                             }
                         });
                         viewHolder.mAvatar.setParticipants(participantId);
+
+                        if(participant instanceof LayerParticipant)
+                            viewHolder.mUsername.setText(((LayerParticipant) participant).getUsername());
                     }
                     break;
 
-                    case CONVERSATION: {
+                    case CONVERSATION:
+                    {
                         position = adapterPositionToConversationPosition(position);
                         Conversation conversation = mQueryController.getItem(position);
                         String userId = mLayerClient.getAuthenticatedUserId();
                         List<String> names = new ArrayList<String>();
                         Set<String> ids = new LinkedHashSet<String>();
-                        for (String participantId : conversation.getParticipants()) {
+                        for (String participantId : conversation.getParticipants())
+                        {
                             if (participantId.equals(userId)) continue;
                             ids.add(participantId);
                             Participant p = mParticipantProvider.getParticipant(participantId);
@@ -534,10 +659,14 @@ public class AtlasAddressBar extends LinearLayout {
                         }
                         viewHolder.mTitle.setText(TextUtils.join(", ", names));
                         viewHolder.itemView.setTag(conversation);
-                        viewHolder.itemView.setOnClickListener(new OnClickListener() {
+                        viewHolder.itemView.setOnClickListener(new OnClickListener()
+                        {
                             @Override
-                            public void onClick(View v) {
-                                if (mOnConversationClickListener == null) return;
+                            public void onClick(View v)
+                            {
+                                if (mOnConversationClickListener == null)
+                                    return;
+
                                 mOnConversationClickListener.onConversationClick(AtlasAddressBar.this, (Conversation) v.getTag());
                             }
                         });
@@ -549,31 +678,40 @@ public class AtlasAddressBar extends LinearLayout {
         }
 
         // first are participants; then are conversations
-        Type getType(int position) {
-            synchronized (mParticipantIds) {
+        Type getType(int position)
+        {
+            synchronized (mParticipantIds)
+            {
                 return (position < mParticipantIds.size()) ? Type.PARTICIPANT : Type.CONVERSATION;
             }
         }
 
-        int adapterPositionToParticipantPosition(int position) {
+        int adapterPositionToParticipantPosition(int position)
+        {
             return position;
         }
 
-        int adapterPositionToConversationPosition(int position) {
-            synchronized (mParticipantIds) {
+        int adapterPositionToConversationPosition(int position)
+        {
+            synchronized (mParticipantIds)
+            {
                 return position - mParticipantIds.size();
             }
         }
 
-        int conversationPositionToAdapterPosition(int position) {
-            synchronized (mParticipantIds) {
+        int conversationPositionToAdapterPosition(int position)
+        {
+            synchronized (mParticipantIds)
+            {
                 return position + mParticipantIds.size();
             }
         }
 
         @Override
-        public int getItemCount() {
-            synchronized (mParticipantIds) {
+        public int getItemCount()
+        {
+            synchronized (mParticipantIds)
+            {
                 return mQueryController.getItemCount() + mParticipantIds.size();
             }
         }
@@ -584,42 +722,50 @@ public class AtlasAddressBar extends LinearLayout {
         //==============================================================================================
 
         @Override
-        public void onQueryDataSetChanged(RecyclerViewController controller) {
+        public void onQueryDataSetChanged(RecyclerViewController controller)
+        {
             notifyDataSetChanged();
         }
 
         @Override
-        public void onQueryItemChanged(RecyclerViewController controller, int position) {
+        public void onQueryItemChanged(RecyclerViewController controller, int position)
+        {
             notifyItemChanged(conversationPositionToAdapterPosition(position));
         }
 
         @Override
-        public void onQueryItemRangeChanged(RecyclerViewController controller, int positionStart, int itemCount) {
+        public void onQueryItemRangeChanged(RecyclerViewController controller, int positionStart, int itemCount)
+        {
             notifyItemRangeChanged(conversationPositionToAdapterPosition(positionStart), itemCount);
         }
 
         @Override
-        public void onQueryItemInserted(RecyclerViewController controller, int position) {
+        public void onQueryItemInserted(RecyclerViewController controller, int position)
+        {
             notifyItemInserted(conversationPositionToAdapterPosition(position));
         }
 
         @Override
-        public void onQueryItemRangeInserted(RecyclerViewController controller, int positionStart, int itemCount) {
+        public void onQueryItemRangeInserted(RecyclerViewController controller, int positionStart, int itemCount)
+        {
             notifyItemRangeInserted(conversationPositionToAdapterPosition(positionStart), itemCount);
         }
 
         @Override
-        public void onQueryItemRemoved(RecyclerViewController controller, int position) {
+        public void onQueryItemRemoved(RecyclerViewController controller, int position)
+        {
             notifyItemRemoved(conversationPositionToAdapterPosition(position));
         }
 
         @Override
-        public void onQueryItemRangeRemoved(RecyclerViewController controller, int positionStart, int itemCount) {
+        public void onQueryItemRangeRemoved(RecyclerViewController controller, int positionStart, int itemCount)
+        {
             notifyItemRangeRemoved(conversationPositionToAdapterPosition(positionStart), itemCount);
         }
 
         @Override
-        public void onQueryItemMoved(RecyclerViewController controller, int fromPosition, int toPosition) {
+        public void onQueryItemMoved(RecyclerViewController controller, int fromPosition, int toPosition)
+        {
             notifyItemMoved(conversationPositionToAdapterPosition(fromPosition), conversationPositionToAdapterPosition(toPosition));
         }
 
@@ -628,27 +774,38 @@ public class AtlasAddressBar extends LinearLayout {
         // Inner classes
         //==============================================================================================
 
-        protected class ViewHolder extends RecyclerView.ViewHolder {
+        protected class ViewHolder extends RecyclerView.ViewHolder
+        {
             private AtlasAvatar mAvatar;
             private TextView mTitle;
+            private TextView mUsername;
 
-            public ViewHolder(ViewGroup parent) {
-                super(LayoutInflater.from(parent.getContext()).inflate(R.layout.atlas_address_bar_item, parent, false));
-                mAvatar = (AtlasAvatar) itemView.findViewById(R.id.avatar);
-                mTitle = (TextView) itemView.findViewById(R.id.title);
-                mTitle.setTextColor(mListTextColor);
-                mTitle.setTextSize(TypedValue.COMPLEX_UNIT_PX, mListTextSize);
+            public ViewHolder(ViewGroup parent)
+            {
+                super(LayoutInflater.from(parent.getContext()).inflate(R.layout.table_row_message_participant, parent, false));
+                mAvatar = (AtlasAvatar) itemView.findViewById(com.layer.atlas.R.id.avatar);
+                mTitle = (TextView) itemView.findViewById(com.layer.atlas.R.id.title);
                 mTitle.setTypeface(mListTextTypeface, mListTextStyle);
+
+                mUsername = (TextView) itemView.findViewById(R.id.username);
+                mUsername.setTypeface(mListTextTypeface, mListTextStyle);
             }
         }
     }
 
 
-    public interface OnConversationClickListener {
+    public interface OnConversationClickListener
+    {
         void onConversationClick(AtlasAddressBar conversationLauncher, Conversation conversation);
     }
 
-    public interface OnParticipantSelectionChangeListener {
+    public interface OnParticipantSelectionChangeListener
+    {
         void onParticipantSelectionChanged(AtlasAddressBar conversationLauncher, List<String> participantIds);
+    }
+
+    public interface OnMaxSelectedParticipantsExceededListener
+    {
+        void onMaxSelectedParticipantsExceeded();
     }
 }
